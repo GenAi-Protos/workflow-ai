@@ -1,0 +1,1177 @@
+import { Plug, Database, FileText, Bot, Mail, Calendar, Users, Github, Search, Image, Phone, MessageSquare, Globe, Video, Zap } from 'lucide-react';
+import { createElement } from 'react';
+import type { FC } from 'react';
+import { BlockConfig } from '../../types';
+
+// Custom SVG logo component for integration blocks
+const createSvgIcon = (logoUrl: string, fallbackIcon = Plug): FC<{ size?: number }> => {
+  return ({ size = 24 }) => createElement('img', {
+    src: logoUrl,
+    alt: 'Logo',
+    width: size,
+    height: size,
+    style: { objectFit: 'contain' }
+  });
+};
+
+// Common integration configuration
+const createIntegrationBlock = (
+  type: string,
+  name: string,
+  description: string,
+  logoUrl?: string,
+  fallbackIcon = Plug,
+  additionalFields: Array<{
+    id: string;
+    title: string;
+    type: 'short-input' | 'long-input' | 'code' | 'slider' | 'combobox' | 'tool-input' | 'toggle' | 'number' | 'datetime';
+    layout: 'full' | 'half';
+    placeholder?: string;
+    required?: boolean;
+    options?: () => Array<{ id: string; label: string }>;
+    rows?: number;
+    language?: 'json' | 'typescript' | 'javascript' | 'text';
+  }> = []
+): BlockConfig => ({
+  type,
+  name,
+  description,
+  category: 'integrations',
+  bgColor: '#ec4899', // Pink for integrations
+  icon: logoUrl ? createSvgIcon(logoUrl, fallbackIcon) : (({ size }) => createElement(fallbackIcon, { size })) as FC<{ size?: number }>,
+  subBlocks: [
+    {
+      id: 'apiKey',
+      title: 'API Key',
+      type: 'short-input',
+      layout: 'full',
+      password: true,
+      placeholder: `Enter your ${name} API key`,
+      required: true
+    },
+    {
+      id: 'endpoint',
+      title: 'Endpoint URL',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: `${name} API endpoint (optional)`
+    },
+    ...additionalFields
+  ],
+  inputs: {
+    apiKey: { type: 'string', description: 'API key for authentication' },
+    endpoint: { type: 'string', description: 'Custom endpoint URL' }
+  },
+  outputs: {
+    data: { type: 'json', description: 'Response data from the service' },
+    status: { type: 'string', description: 'Request status' }
+  },
+  async run(ctx) {
+    const { apiKey } = ctx.inputs as { apiKey?: unknown };
+    
+    if (!apiKey) {
+      throw new Error(`${name} API key is required`);
+    }
+    
+    ctx.log(`Executing ${name} integration`);
+    
+    // Mock response for now
+  const result = {
+      data: { message: `${name} integration executed successfully` },
+      status: 'success'
+    };
+    
+    ctx.setNodeOutput('data', result.data);
+    ctx.setNodeOutput('status', result.status);
+    
+    return result;
+  }
+});
+
+// Define all integration blocks
+export const airtableBlock = createIntegrationBlock(
+  'airtable',
+  'Airtable',
+  'Connect to Airtable bases and tables',
+  'https://www.vectorlogo.zone/logos/airtable/airtable-icon.svg',
+  Database,
+  [
+    {
+      id: 'baseId',
+      title: 'Base ID',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: 'app1234567890',
+      required: true
+    },
+    {
+      id: 'tableId',
+      title: 'Table ID',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: 'tbl1234567890',
+      required: true
+    }
+  ]
+);
+
+export const arxivBlock = createIntegrationBlock(
+  'arxiv',
+  'ArXiv',
+  'Search and retrieve academic papers from ArXiv',
+  'https://arxiv.org/favicon.ico',
+  FileText,
+  [
+    {
+      id: 'query',
+      title: 'Search Query',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'machine learning',
+      required: true
+    },
+    {
+      id: 'maxResults',
+      title: 'Max Results',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: '10'
+    }
+  ]
+);
+
+export const browserUseBlock = createIntegrationBlock(
+  'browseruse',
+  'BrowserUse',
+  'Automate browser interactions and web scraping',
+  'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/googlechrome.svg',
+  Globe
+);
+
+export const clayBlock = createIntegrationBlock(
+  'clay',
+  'Clay',
+  'Connect to Clay for data enrichment and workflows',
+  '/clay-logo.png',
+  Database
+);
+
+export const confluenceBlock = createIntegrationBlock(
+  'confluence',
+  'Confluence',
+  'Access and manage Confluence pages and spaces',
+  'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/confluence.svg',
+  FileText,
+  [
+    {
+      id: 'domain',
+      title: 'Confluence Domain',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'your-domain.atlassian.net',
+      required: true
+    }
+  ]
+);
+
+export const discordBlock = createIntegrationBlock(
+  'discord',
+  'Discord',
+  'Send messages and manage Discord servers',
+  'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/discord.svg',
+  MessageSquare,
+  [
+    {
+      id: 'webhookUrl',
+      title: 'Webhook URL',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'Discord webhook URL'
+    }
+  ]
+);
+
+export const elevenLabsBlock = createIntegrationBlock(
+  'elevenlabs',
+  'ElevenLabs',
+  'Generate speech with AI voices',
+  'https://elevenlabs.io/favicon.ico',
+  Bot,
+  [
+    {
+      id: 'voiceId',
+      title: 'Voice ID',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: '21m00Tcm4TlvDq8ikWAM'
+    },
+    {
+      id: 'model',
+      title: 'Model',
+      type: 'combobox',
+      layout: 'half',
+      options: () => [
+        { id: 'eleven_multilingual_v2', label: 'Multilingual v2' },
+        { id: 'eleven_turbo_v2_5', label: 'Turbo v2.5' }
+      ]
+    }
+  ]
+);
+
+export const exaBlock = createIntegrationBlock(
+  'exa',
+  'Exa',
+  'Search the web with AI-powered search engine',
+  '/exa-logo.png',
+  Search
+);
+
+export const fileBlock = createIntegrationBlock(
+  'file',
+  'File',
+  'Read and write files from various sources',
+  undefined,
+  FileText,
+  [
+    {
+      id: 'filePath',
+      title: 'File Path',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: '/path/to/file.txt',
+      required: true
+    },
+    {
+      id: 'operation',
+      title: 'Operation',
+      type: 'combobox',
+      layout: 'half',
+      options: () => [
+        { id: 'read', label: 'Read' },
+        { id: 'write', label: 'Write' },
+        { id: 'append', label: 'Append' }
+      ]
+    }
+  ]
+);
+
+export const firecrawlBlock = createIntegrationBlock(
+  'firecrawl',
+  'Firecrawl',
+  'Scrape and crawl websites with AI',
+  'https://firecrawl.dev/favicon.ico',
+  Globe,
+  [
+    {
+      id: 'url',
+      title: 'URL',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'https://example.com',
+      required: true
+    }
+  ]
+);
+
+export const githubBlock = createIntegrationBlock(
+  'github',
+  'GitHub',
+  'Interact with GitHub repositories and issues',
+  'https://www.vectorlogo.zone/logos/github/github-icon.svg',
+  Github,
+  [
+    {
+      id: 'repository',
+      title: 'Repository',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'owner/repo',
+      required: true
+    }
+  ]
+);
+
+export const gmailBlock = createIntegrationBlock(
+  'gmail',
+  'Gmail',
+  'Send and manage Gmail emails',
+  'https://www.vectorlogo.zone/logos/gmail/gmail-icon.svg',
+  Mail,
+  [
+    {
+      id: 'to',
+      title: 'To',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'recipient@example.com'
+    },
+    {
+      id: 'subject',
+      title: 'Subject',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'Email subject'
+    },
+    {
+      id: 'body',
+      title: 'Body',
+      type: 'long-input',
+      layout: 'full',
+      placeholder: 'Email content...',
+      rows: 4
+    }
+  ]
+);
+
+export const googleBlock = createIntegrationBlock(
+  'google',
+  'Google',
+  'Access Google services and APIs',
+  'https://www.vectorlogo.zone/logos/google/google-icon.svg',
+  Search
+);
+
+export const googleCalendarBlock = createIntegrationBlock(
+  'googlecalendar',
+  'Google Calendar',
+  'Manage Google Calendar events',
+  'https://calendar.google.com/googlecalendar/images/favicon_v2014_2.ico',
+  Calendar,
+  [
+    {
+      id: 'operation',
+      title: 'Operation',
+      type: 'combobox',
+      layout: 'full',
+      options: () => [
+        { id: 'create', label: 'Create Event' },
+        { id: 'update', label: 'Update Event' },
+        { id: 'delete', label: 'Delete Event' }
+      ],
+      required: true
+    },
+    {
+      id: 'account',
+      title: 'Google Calendar Account',
+      type: 'combobox',
+      layout: 'full',
+      options: () => [{ id: 'default', label: 'Select Google Calendar account' }],
+      required: true
+    },
+    {
+      id: 'calendarId',
+      title: 'Calendar',
+      type: 'combobox',
+      layout: 'full',
+      options: () => [{ id: 'primary', label: 'Primary' }],
+      required: true
+    },
+    {
+      id: 'eventTitle',
+      title: 'Event Title',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'Meeting with team',
+      required: true
+    },
+    {
+      id: 'description',
+      title: 'Description',
+      type: 'long-input',
+      layout: 'full',
+      placeholder: 'Event description',
+      rows: 3
+    },
+    {
+      id: 'location',
+      title: 'Location',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'Conference Room A'
+    },
+    {
+      id: 'startDateTime',
+      title: 'Start Date & Time',
+      type: 'datetime',
+      layout: 'half',
+      placeholder: '2025-06-03T10:00'
+    },
+    {
+      id: 'endDateTime',
+      title: 'End Date & Time',
+      type: 'datetime',
+      layout: 'half',
+      placeholder: '2025-06-03T11:00'
+    },
+    {
+      id: 'attendees',
+      title: 'Attendees (comma-separated emails)',
+      type: 'long-input',
+      layout: 'full',
+      placeholder: 'john@example.com, jane@example.com',
+      rows: 2
+    },
+    {
+      id: 'sendNotifications',
+      title: 'Send Email Notifications',
+      type: 'toggle',
+      layout: 'half'
+    },
+    {
+      id: 'notificationLevel',
+      title: 'Notification Recipients',
+      type: 'combobox',
+      layout: 'full',
+      options: () => [
+        { id: 'none', label: 'None' },
+        { id: 'all', label: 'All attendees (recommended)' },
+        { id: 'organizer', label: 'Organizer only' }
+      ]
+    }
+  ]
+);
+
+export const googleDocsBlock = createIntegrationBlock(
+  'googledocs',
+  'Google Docs',
+  'Create and edit Google Docs',
+  'https://ssl.gstatic.com/docs/documents/images/kix-favicon7.ico',
+  FileText
+);
+
+export const googleDriveBlock = createIntegrationBlock(
+  'googledrive',
+  'Google Drive',
+  'Access and manage Google Drive files',
+  'https://ssl.gstatic.com/images/branding/product/1x/drive_2020q4_32dp.png',
+  Database
+);
+
+export const googleSheetsBlock = createIntegrationBlock(
+  'googlesheets',
+  'Google Sheets',
+  'Read and write Google Sheets data',
+  'https://ssl.gstatic.com/docs/spreadsheets/favicon3.ico',
+  Database,
+  [
+    {
+      id: 'spreadsheetId',
+      title: 'Spreadsheet ID',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms',
+      required: true
+    },
+    {
+      id: 'range',
+      title: 'Range',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: 'Sheet1!A1:D10'
+    }
+  ]
+);
+
+export const huggingFaceBlock = createIntegrationBlock(
+  'huggingface',
+  'HuggingFace',
+  'Access HuggingFace models and datasets',
+  'https://huggingface.co/favicon.ico',
+  Bot,
+  [
+    {
+      id: 'model',
+      title: 'Model',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'gpt2',
+      required: true
+    }
+  ]
+);
+
+export const hunterBlock = createIntegrationBlock(
+  'hunter',
+  'Hunter',
+  'Find email addresses with Hunter.io',
+  'https://hunter.io/favicon.ico',
+  Search,
+  [
+    {
+      id: 'domain',
+      title: 'Domain',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'example.com',
+      required: true
+    }
+  ]
+);
+
+export const imageGeneratorBlock = createIntegrationBlock(
+  'imagegenerator',
+  'Image Generator',
+  'Generate images with AI',
+  'https://openai.com/favicon.ico',
+  Image,
+  [
+    {
+      id: 'prompt',
+      title: 'Prompt',
+      type: 'long-input',
+      layout: 'full',
+      placeholder: 'A beautiful sunset over mountains',
+      rows: 3,
+      required: true
+    },
+    {
+      id: 'size',
+      title: 'Size',
+      type: 'combobox',
+      layout: 'half',
+      options: () => [
+        { id: '1024x1024', label: '1024×1024' },
+        { id: '1792x1024', label: '1792×1024' },
+        { id: '1024x1792', label: '1024×1792' }
+      ]
+    }
+  ]
+);
+
+export const jinaBlock = createIntegrationBlock(
+  'jina',
+  'Jina',
+  'Use Jina AI for embeddings and search',
+  'https://jina.ai/favicon.ico',
+  Bot
+);
+
+export const jiraBlock = createIntegrationBlock(
+  'jira',
+  'Jira',
+  'Manage Jira issues and projects',
+  'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/jira.svg',
+  Zap,
+  [
+    {
+      id: 'domain',
+      title: 'Jira Domain',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'your-domain.atlassian.net',
+      required: true
+    },
+    {
+      id: 'projectKey',
+      title: 'Project Key',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: 'PROJ'
+    }
+  ]
+);
+
+export const linearBlock = createIntegrationBlock(
+  'linear',
+  'Linear',
+  'Create and manage Linear issues',
+  'https://linear.app/favicon.ico',
+  Zap,
+  [
+    {
+      id: 'teamId',
+      title: 'Team ID',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'team_123456789'
+    }
+  ]
+);
+
+export const linkedInBlock = createIntegrationBlock(
+  'linkedin',
+  'LinkedIn',
+  'Connect and manage professional networks',
+  'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/linkedin.svg',
+  Users
+);
+
+export const mem0Block = createIntegrationBlock(
+  'mem0',
+  'Mem0',
+  'Store and retrieve AI memories',
+  'https://mem0.ai/favicon.ico',
+  Database,
+  [
+    {
+      id: 'userId',
+      title: 'User ID',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'user_123'
+    }
+  ]
+);
+
+export const microsoftExcelBlock = createIntegrationBlock(
+  'microsoftexcel',
+  'Microsoft Excel',
+  'Read and write Excel spreadsheets',
+  'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/microsoftexcel.svg',
+  Database
+);
+
+export const microsoftPlannerBlock = createIntegrationBlock(
+  'microsoftplanner',
+  'Microsoft Planner',
+  'Manage Microsoft Planner tasks',
+  'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/microsoftexcel.svg',
+  Calendar
+);
+
+export const microsoftTeamsBlock = createIntegrationBlock(
+  'microsoftteams',
+  'Microsoft Teams',
+  'Send messages and manage Teams',
+  'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/microsoftteams.svg',
+  MessageSquare
+);
+
+export const mistralParseBlock = createIntegrationBlock(
+  'mistralparse',
+  'Mistral Parse',
+  'Parse documents with Mistral AI',
+  'https://mistral.ai/favicon.ico',
+  FileText
+);
+
+export const notionBlock = createIntegrationBlock(
+  'notion',
+  'Notion',
+  'Read and write Notion pages and databases',
+  'https://notion.so/images/favicon.ico',
+  Database,
+  [
+    {
+      id: 'databaseId',
+      title: 'Database ID',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'notion-database-id'
+    }
+  ]
+);
+
+export const oneDriveBlock = createIntegrationBlock(
+  'onedrive',
+  'OneDrive',
+  'Access and manage OneDrive files',
+  'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/microsoftonedrive.svg',
+  Database
+);
+
+export const openAIBlock = createIntegrationBlock(
+  'openai',
+  'OpenAI',
+  'Access OpenAI models and APIs',
+  'https://openai.com/favicon.ico',
+  Bot,
+  [
+    {
+      id: 'model',
+      title: 'Model',
+      type: 'combobox',
+      layout: 'full',
+      options: () => [
+        { id: 'gpt-4o', label: 'GPT-4o' },
+        { id: 'gpt-4o-mini', label: 'GPT-4o Mini' },
+        { id: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' }
+      ]
+    }
+  ]
+);
+
+export const outlookBlock = createIntegrationBlock(
+  'outlook',
+  'Outlook',
+  'Send and manage Outlook emails',
+  'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/microsoftoutlook.svg',
+  Mail
+);
+
+export const perplexityBlock = createIntegrationBlock(
+  'perplexity',
+  'Perplexity',
+  'Search with Perplexity AI',
+  'https://perplexity.ai/favicon.ico',
+  Search
+);
+
+export const pineconeBlock = createIntegrationBlock(
+  'pinecone',
+  'Pinecone',
+  'Store and query vector embeddings',
+  'https://pinecone.io/favicon.ico',
+  Database,
+  [
+    {
+      id: 'index',
+      title: 'Index Name',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'my-index',
+      required: true
+    }
+  ]
+);
+
+export const qdrantBlock = createIntegrationBlock(
+  'qdrant',
+  'Qdrant',
+  'Vector database for AI applications',
+  'https://qdrant.tech/favicon.ico',
+  Database
+);
+
+export const redditBlock = createIntegrationBlock(
+  'reddit',
+  'Reddit',
+  'Access Reddit posts and comments',
+  'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/reddit.svg',
+  MessageSquare,
+  [
+    {
+      id: 'subreddit',
+      title: 'Subreddit',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'programming'
+    }
+  ]
+);
+
+export const s3Block = createIntegrationBlock(
+  's3',
+  'AWS S3',
+  'Store and retrieve files from Amazon S3',
+  'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/amazonwebservices.svg',
+  Database,
+  [
+    {
+      id: 'bucket',
+      title: 'Bucket Name',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'my-bucket',
+      required: true
+    },
+    {
+      id: 'region',
+      title: 'Region',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: 'us-east-1'
+    }
+  ]
+);
+
+export const serperBlock = createIntegrationBlock(
+  'serper',
+  'Serper',
+  'Google search API integration',
+  'https://serper.dev/favicon.ico',
+  Search
+);
+
+export const sharePointBlock = createIntegrationBlock(
+  'sharepoint',
+  'SharePoint',
+  'Access SharePoint sites and documents',
+  'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/microsoftsharepoint.svg',
+  Database
+);
+
+export const slackBlock = createIntegrationBlock(
+  'slack',
+  'Slack',
+  'Send messages and manage Slack workspaces',
+  'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/slack.svg',
+  MessageSquare,
+  [
+    {
+      id: 'channel',
+      title: 'Channel',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: '#general'
+    }
+  ]
+);
+
+export const stagehandBlock = createIntegrationBlock(
+  'stagehand',
+  'Stagehand',
+  'Browser automation with AI',
+  'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/playwright.svg',
+  Globe
+);
+
+export const stagehandAgentBlock = createIntegrationBlock(
+  'stagehandagent',
+  'Stagehand Agent',
+  'AI-powered browser automation agent',
+  'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/playwright.svg',
+  Bot
+);
+
+export const supabaseBlock = createIntegrationBlock(
+  'supabase',
+  'Supabase',
+  'Interact with Supabase database and auth',
+  'https://www.vectorlogo.zone/logos/supabase/supabase-icon.svg',
+  Database,
+  [
+    {
+      id: 'table',
+      title: 'Table',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'users',
+      required: true
+    },
+    {
+      id: 'operation',
+      title: 'Operation',
+      type: 'combobox',
+      layout: 'half',
+      options: () => [
+        { id: 'select', label: 'Select' },
+        { id: 'insert', label: 'Insert' },
+        { id: 'update', label: 'Update' },
+        { id: 'delete', label: 'Delete' }
+      ]
+    }
+  ]
+);
+
+export const tavilyBlock = createIntegrationBlock(
+  'tavily',
+  'Tavily',
+  'AI-powered web search and research',
+  'https://tavily.com/favicon.ico',
+  Search
+);
+
+export const telegramBlock = createIntegrationBlock(
+  'telegram',
+  'Telegram',
+  'Send messages via Telegram bot',
+  'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/telegram.svg',
+  MessageSquare,
+  [
+    {
+      id: 'chatId',
+      title: 'Chat ID',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: '123456789'
+    }
+  ]
+);
+
+export const thinkingBlock = createIntegrationBlock(
+  'thinking',
+  'Thinking',
+  'AI reasoning and thought processes',
+  'https://openai.com/favicon.ico',
+  Bot
+);
+
+export const translateBlock = createIntegrationBlock(
+  'translate',
+  'Translate',
+  'Translate text between languages',
+  'https://ssl.gstatic.com/translate/favicon.ico',
+  Globe,
+  [
+    {
+      id: 'targetLanguage',
+      title: 'Target Language',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: 'es',
+      required: true
+    },
+    {
+      id: 'text',
+      title: 'Text to Translate',
+      type: 'long-input',
+      layout: 'full',
+      placeholder: 'Hello, world!',
+      rows: 3,
+      required: true
+    }
+  ]
+);
+
+export const twilioBlock = createIntegrationBlock(
+  'twilio',
+  'Twilio',
+  'Send SMS and make calls with Twilio',
+  'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/twilio.svg',
+  Phone,
+  [
+    {
+      id: 'phoneNumber',
+      title: 'To Phone Number',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: '+1234567890'
+    },
+    {
+      id: 'message',
+      title: 'Message',
+      type: 'long-input',
+      layout: 'full',
+      placeholder: 'Your message here...',
+      rows: 3
+    }
+  ]
+);
+
+export const typeformBlock = createIntegrationBlock(
+  'typeform',
+  'Typeform',
+  'Create and manage Typeform surveys',
+  'https://admin.typeform.com/favicon.ico',
+  FileText
+);
+
+export const visionBlock = createIntegrationBlock(
+  'vision',
+  'Vision',
+  'Analyze images with AI vision models',
+  'https://ssl.gstatic.com/images/branding/product/1x/googleg_32dp.png',
+  Image,
+  [
+    {
+      id: 'imageUrl',
+      title: 'Image URL',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'https://example.com/image.jpg',
+      required: true
+    },
+    {
+      id: 'prompt',
+      title: 'Analysis Prompt',
+      type: 'long-input',
+      layout: 'full',
+      placeholder: 'What do you see in this image?',
+      rows: 3
+    }
+  ]
+);
+
+export const wealthboxBlock = createIntegrationBlock(
+  'wealthbox',
+  'Wealthbox',
+  'Manage Wealthbox CRM data',
+  'https://wealthbox.com/favicon.ico',
+  Users
+);
+
+export const webhookBlock = createIntegrationBlock(
+  'webhook',
+  'Webhook',
+  'Send HTTP webhooks to external services',
+  'https://webhook.site/favicon.ico',
+  Zap,
+  [
+    {
+      id: 'url',
+      title: 'Webhook URL',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'https://example.com/webhook',
+      required: true
+    },
+    {
+      id: 'method',
+      title: 'HTTP Method',
+      type: 'combobox',
+      layout: 'half',
+      options: () => [
+        { id: 'POST', label: 'POST' },
+        { id: 'PUT', label: 'PUT' },
+        { id: 'PATCH', label: 'PATCH' }
+      ]
+    },
+    {
+      id: 'payload',
+      title: 'Payload',
+      type: 'code',
+      layout: 'full',
+      language: 'json',
+      placeholder: '{"message": "Hello, world!"}'
+    }
+  ]
+);
+
+export const whatsappBlock = createIntegrationBlock(
+  'whatsapp',
+  'WhatsApp',
+  'Send WhatsApp messages',
+  'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/whatsapp.svg',
+  MessageSquare,
+  [
+    {
+      id: 'phoneNumber',
+      title: 'Phone Number',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: '+1234567890'
+    }
+  ]
+);
+
+export const wikipediaBlock = createIntegrationBlock(
+  'wikipedia',
+  'Wikipedia',
+  'Search and retrieve Wikipedia articles',
+  'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/wikipedia.svg',
+  Search,
+  [
+    {
+      id: 'query',
+      title: 'Search Query',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'artificial intelligence',
+      required: true
+    }
+  ]
+);
+
+export const workflowBlock = createIntegrationBlock(
+  'workflow',
+  'Workflow',
+  'Execute sub-workflows and nested processes',
+  'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/zapier.svg',
+  Zap,
+  [
+    {
+      id: 'workflowId',
+      title: 'Workflow ID',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'workflow-123',
+      required: true
+    }
+  ]
+);
+
+export const xBlock = createIntegrationBlock(
+  'x',
+  'X (Twitter)',
+  'Post and manage X (Twitter) content',
+  'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/x.svg',
+  MessageSquare,
+  [
+    {
+      id: 'tweet',
+      title: 'Tweet Content',
+      type: 'long-input',
+      layout: 'full',
+      placeholder: 'Your tweet here...',
+      rows: 3,
+      required: true
+    }
+  ]
+);
+
+export const youTubeBlock = createIntegrationBlock(
+  'youtube',
+  'YouTube',
+  'Search and manage YouTube videos',
+  'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/youtube.svg',
+  Video,
+  [
+    {
+      id: 'query',
+      title: 'Search Query',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'machine learning tutorial'
+    },
+    {
+      id: 'maxResults',
+      title: 'Max Results',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: '10'
+    }
+  ]
+);
+
+// Export all integration blocks
+export const integrationBlocks = {
+  airtable: airtableBlock,
+  arxiv: arxivBlock,
+  browseruse: browserUseBlock,
+  clay: clayBlock,
+  confluence: confluenceBlock,
+  discord: discordBlock,
+  elevenlabs: elevenLabsBlock,
+  exa: exaBlock,
+  file: fileBlock,
+  firecrawl: firecrawlBlock,
+  github: githubBlock,
+  gmail: gmailBlock,
+  google: googleBlock,
+  googlecalendar: googleCalendarBlock,
+  googledocs: googleDocsBlock,
+  googledrive: googleDriveBlock,
+  googlesheets: googleSheetsBlock,
+  huggingface: huggingFaceBlock,
+  hunter: hunterBlock,
+  imagegenerator: imageGeneratorBlock,
+  jina: jinaBlock,
+  jira: jiraBlock,
+  linear: linearBlock,
+  linkedin: linkedInBlock,
+  mem0: mem0Block,
+  microsoftexcel: microsoftExcelBlock,
+  microsoftplanner: microsoftPlannerBlock,
+  microsoftteams: microsoftTeamsBlock,
+  mistralparse: mistralParseBlock,
+  notion: notionBlock,
+  onedrive: oneDriveBlock,
+  openai: openAIBlock,
+  outlook: outlookBlock,
+  perplexity: perplexityBlock,
+  pinecone: pineconeBlock,
+  qdrant: qdrantBlock,
+  reddit: redditBlock,
+  s3: s3Block,
+  serper: serperBlock,
+  sharepoint: sharePointBlock,
+  slack: slackBlock,
+  stagehand: stagehandBlock,
+  stagehandagent: stagehandAgentBlock,
+  supabase: supabaseBlock,
+  tavily: tavilyBlock,
+  telegram: telegramBlock,
+  thinking: thinkingBlock,
+  translate: translateBlock,
+  twilio: twilioBlock,
+  typeform: typeformBlock,
+  vision: visionBlock,
+  wealthbox: wealthboxBlock,
+  webhook: webhookBlock,
+  whatsapp: whatsappBlock,
+  wikipedia: wikipediaBlock,
+  workflow: workflowBlock,
+  x: xBlock,
+  youtube: youTubeBlock,
+};
